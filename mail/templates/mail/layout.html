@@ -1,0 +1,353 @@
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <title>{% block title %}Mail{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{% static 'mail/styles.css' %}" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        function load_mailbox(mailbox) {
+          fetch(`/emails/${mailbox}`)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((emails) => {
+              const emailsView = document.querySelector("#emails-view");
+              emailsView.innerHTML = "";
+
+              emails.forEach((email) => {
+                const emailDiv = document.createElement("div");
+                emailDiv.classList.add("email");
+
+                emailDiv.innerHTML = `
+                <div class="p-4">
+  <div class="grid grid-cols-1 gap-4">
+    <div class="bg-white rounded-lg shadow-md">
+      <div class="p-6 border border-gray-300">
+        <div class="mb-4">
+          <span class="text-gray-600">From:</span>
+          <span class="font-semibold">${email.sender}</span>
+        </div>
+        <div class="mb-4">
+          <span class="text-gray-600">Subject:</span>
+          <span class="font-semibold">${email.subject}</span>
+        </div>
+        <div>
+          <span class="text-gray-600">Date:</span>
+          <span class="font-semibold">${email.timestamp}</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+                `;
+
+                emailDiv.addEventListener("click", () => {
+                  document.querySelector("#emails-view").style.display = "none";
+                  document.querySelector("#email-detail").style.display =
+                    "block";
+
+                  view_email(email.id);
+                });
+
+                if (email.read) {
+                  emailDiv.style.backgroundColor = "#f0f0f0";
+                }
+
+                emailsView.appendChild(emailDiv);
+              });
+            })
+            .catch((error) => {
+              console.error("Error fetching emails:", error);
+            });
+        }
+
+        function compose_email() {
+          document.querySelector("#emails-view").style.display = "none";
+          document.querySelector("#email-detail").style.display = "none";
+          document.querySelector("#compose-view").style.display = "block";
+
+          document.querySelector("#compose-recipients").value = "";
+          document.querySelector("#compose-subject").value = "";
+          document.querySelector("#compose-body").value = "";
+
+          document.querySelector("#compose-recipients").disabled = false;
+          document.querySelector("#compose-subject").disabled = false;
+          document.querySelector("#compose-body").disabled = false;
+        }
+
+        function send_email(e) {
+          e.preventDefault();
+
+          const recipients = document.querySelector(
+            "#compose-recipients"
+          ).value;
+          const subject = document.querySelector("#compose-subject").value;
+          const body = document.querySelector("#compose-body").value;
+
+          fetch("/emails", {
+            method: "POST",
+            body: JSON.stringify({
+              recipients: recipients,
+              subject: subject,
+              body: body,
+            }),
+          })
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((data) => {
+              Swal.fire({
+                title: "Email enviado!",
+                text: "Tu email fue enviado con éxito.",
+                icon: "success",
+                confirmButtonText: "OK",
+              }).then(() => {
+                window.location.reload();
+                load_mailbox("sent");
+              });
+            })
+            .catch((error) => {
+              console.error("Error sending email:", error);
+
+              Swal.fire({
+                title: "Error!",
+
+                text: "Hubo un error al enviar el correo electrónico. Inténtalo de nuevo.",
+                icon: "error",
+                confirmButtonText: "OK",
+              });
+            });
+        }
+
+        function view_email(id) {
+          fetch(`/emails/${id}`)
+            .then((response) => {
+              if (!response.ok) {
+                throw new Error("Network response was not ok");
+              }
+              return response.json();
+            })
+            .then((email) => {
+              const emailDetailContainer = document.getElementById(
+                "email-detail-container"
+              );
+              const emailDetail = document.querySelector("#email-detail");
+
+              emailDetailContainer.style.display = "block";
+              emailDetail.innerHTML = "";
+              emailDetail.innerHTML = "";
+              const senderDiv = document.createElement("div");
+              senderDiv.textContent = `From: ${email.sender}`;
+              senderDiv.classList.add("text-gray-800", "font-semibold", "mb-2");
+              emailDetail.appendChild(senderDiv);
+
+              const recipientsDiv = document.createElement("div");
+              recipientsDiv.textContent = `To: ${email.recipients}`;
+              recipientsDiv.classList.add(
+                "text-gray-500",
+                "mb-2",
+                "font-semibold"
+              );
+              emailDetail.appendChild(recipientsDiv);
+
+              const timestampDiv = document.createElement("div");
+              timestampDiv.textContent = `Date: ${email.timestamp}`;
+              timestampDiv.classList.add(
+                "text-gray-500",
+                "mb-2",
+                "border-b",
+                "border-gray-300",
+                "mb-5"
+              );
+              emailDetail.appendChild(timestampDiv);
+
+              const subjectDiv = document.createElement("div");
+              subjectDiv.textContent = `Subject: ${email.subject}`;
+              subjectDiv.classList.add(
+                "text-gray-800",
+                "font-semibold",
+                "border-b",
+                "border-gray-300",
+                "mb-5"
+              );
+              emailDetail.appendChild(subjectDiv);
+
+              const bodyDiv = document.createElement("div");
+              bodyDiv.textContent = `Body: ${email.body}`;
+              bodyDiv.classList.add("text-gray-800", "mb-2");
+              emailDetail.appendChild(bodyDiv);
+
+              const replyButton = document.createElement("button");
+              replyButton.textContent = "Reply";
+              replyButton.classList.add(
+                "bg-gray-500",
+                "hover:bg-gray-400",
+                "text-white",
+                "font-bold",
+                "py-2",
+                "px-4",
+                "border-b-4",
+                "border-gray-700",
+                "hover:border-gray-500",
+                "rounded",
+                "mb-2"
+              );
+              replyButton.addEventListener("click", () => {
+                compose_email();
+
+                const recipientsInput = document.querySelector(
+                  "#compose-recipients"
+                );
+                recipientsInput.value = email.sender;
+                recipientsInput.disabled = true;
+
+                const subjectInput = document.querySelector("#compose-subject");
+                subjectInput.value = `Re: ${email.subject}`;
+                subjectInput.disabled = true;
+
+                document.querySelector(
+                  "#compose-body"
+                ).value = `On ${email.timestamp} ${email.sender} wrote: ${email.body}`;
+              });
+
+              emailDetail.appendChild(replyButton);
+
+              const mailboxType = "inbox"; 
+
+if (mailboxType === "inbox") {
+  const archiveButton = document.createElement("button");
+  archiveButton.textContent = email.archived ? "Unarchive" : "Archive";
+  archiveButton.classList.add(
+    "bg-gray-500",
+    "hover:bg-gray-400",
+    "text-white",
+    "font-bold",
+    "py-2",
+    "px-4",
+    "border-b-4",
+    "border-gray-700",
+    "hover:border-gray-500",
+    "rounded",
+    "mb-2",
+    "ml-2"
+  );
+
+  if (mailboxType === "inbox" && email.sender !== "{{ user.email }}") {
+    archiveButton.addEventListener("click", () => {
+      const isArchived = email.archived;
+    fetch(`/emails/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({
+        archived: !isArchived,
+      }),
+    })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error("Network response was not ok");
+        }
+
+        if (response.status === 204) {
+          const title = isArchived ? "Email unarchived!" : "Email archived!";
+          const text = isArchived ? "The email has been unarchived successfully." : "The email has been archived successfully.";
+
+          Swal.fire({
+            title: title,
+            text: text,
+            icon: "success",
+            confirmButtonText: "OK",
+          }).then(() => {
+            window.location.reload();
+          });
+        } else {
+          return response.json();
+        }
+      })
+      .then((data) => {
+        console.log("Email archived/unarchived:", data);
+      })
+      .catch((error) => {
+        console.error("Error archiving email:", error);
+      });
+
+    load_mailbox(email.archived ? "inbox" : "archive");
+    });
+    emailDetail.appendChild(archiveButton);
+  }
+
+}
+
+              if (!email.read) {
+                fetch(`/emails/${id}`, {
+                  method: "PUT",
+                  body: JSON.stringify({
+                    read: true,
+                  }),
+                })
+                  .then((response) => {
+                    if (!response.ok) {
+                      throw new Error("Network response was not ok");
+                    }
+                  })
+                  .catch((error) => {
+                    console.error("Error marking email as read:", error);
+                  });
+              }
+            })
+            .catch((error) => {
+              console.error("Error fetching email details:", error);
+            });
+        }
+
+        document.querySelector("#inbox").addEventListener("click", () => {
+          window.location.reload();
+
+          load_mailbox("inbox");
+
+          document.getElementById("email-detail-container").style.display =
+            "none";
+        });
+
+        document.querySelector("#sent").addEventListener("click", () => {
+          load_mailbox("sent");
+          document.getElementById("email-detail-container").style.display =
+            "none";
+        });
+
+        document.querySelector("#archived").addEventListener("click", () => {
+          load_mailbox("archive");
+          document.getElementById("email-detail-container").style.display =
+            "none";
+        });
+
+        document.querySelector("#compose").addEventListener("click", () => {
+          document.querySelector("#compose-recipients").disabled = false;
+          document.querySelector("#compose-subject").disabled = false;
+          document.querySelector("#compose-body").disabled = false;
+          document.getElementById("email-detail-container").style.display =
+            "none";
+          compose_email;
+        });
+        document
+          .querySelector("#compose-form")
+          .addEventListener("submit", send_email);
+        load_mailbox("inbox");
+      });
+    </script>
+    {% block script %} {% endblock %}
+  </head>
+  <body>
+    <div class="container">{% block body %} {% endblock %}</div>
+  </body>
+</html>

@@ -1,0 +1,58 @@
+{% extends "mail/layout.html" %}
+{% load static %}
+
+{% block body %}
+    <div class="flex border-r">
+        <div class="flex-none bg-transparent border-r border-b border-gray-300 py-8 px-4">
+            <h2 class="text-xl font-bold mb-4">{{ request.user.email }}</h2>
+            <div class="flex flex-col">
+                <button class="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded mb-2" id="inbox">Inbox</button>
+                <button class="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded mb-2" id="compose">Compose</button>
+                <button class="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded mb-2" id="sent">Sent</button>
+                <button class="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded mb-2" id="archived">Archived</button>
+                <a href="{% url 'logout' %}" class="bg-red-500 hover:bg-red-400 text-white font-bold py-2 px-4 border-b-4 border-red-700 hover:border-red-500 rounded mb-2 text-center">Log Out</a>
+            </div>
+        </div>
+
+        <div class="flex-1 py-8 px-4 border-l">
+            <hr>
+            <div id="emails-view"></div>
+            <div class="p-4" id="email-detail-container" style="display: none;">
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="bg-white rounded-lg shadow-md">
+                        <div class="p-6 border border-gray-400"> 
+                            <div id="email-detail" class="mb-4"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="compose-view" style="display: none;" class="w-full flex flex-col items-center justify-center ml-40">
+                <h3 class="text-lg font-semibold mt-4">New Email</h3>
+            <form id="compose-form" class="border border-gray-300 rounded-md p-6 shadow-md w-full">
+            <div class="mb-4">
+                <label for="from" class="block font-medium">From:</label>
+                <input disabled class="border border-gray-300 rounded-md p-2 w-full" id="from" value="{{ request.user.email }}">
+            </div>
+            <div class="mb-4">
+                <label for="compose-recipients" class="block font-medium">To:</label>
+                <input id="compose-recipients" class="border border-gray-300 rounded-md p-2 w-full">
+            </div>
+            <div class="mb-4">
+                <label for="compose-subject" class="block font-medium">Subject:</label>
+                <input class="border border-gray-300 rounded-md p-2 w-full" id="compose-subject" placeholder="Subject">
+            </div>
+            <div class="mb-4">
+                <label for="compose-body" class="block font-medium">Body:</label>
+                <textarea class="border border-gray-300 rounded-md p-2 w-full" id="compose-body" placeholder="Body"></textarea>
+            </div>
+            <input type="submit" class="bg-gray-500 hover:bg-gray-400 text-white font-bold py-2 px-4 border-b-4 border-gray-700 hover:border-gray-500 rounded" />
+        </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block script %}
+    <script src="{% static 'mail/inbox.js' %}"></script>
+{% endblock %}
